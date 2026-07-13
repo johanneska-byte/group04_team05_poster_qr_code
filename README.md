@@ -1,311 +1,395 @@
 # group04_team05_poster_qr_code
 
-# topic04_team05_myleoid_cells
-## Introduction
+<div align="center">
 
-## Methods and Approaches
+<sub>topic04_team05</sub>
 
-## Quality Control
-To initiate the quality control (QC) analysis, we applied the latest mm10 blacklist to the dataset, filtering out all overlapping ATAC-seq peaks. Using this refined dataset, we evaluated the global chromatin signal for potential experimental bias. Specifically, we investigated whether the mean or standard deviation (SD) of the signal depended on sequencing depth.
+# ATAC-ing Myeloid Cell Identity
 
-The QC assessment demonstrated that the mean chromatin signal remains independent of sequencing depth. However, the standard deviation exhibited a significant negative correlation ($r = -0.529$). This effect is expected, as deeper sequencing typically reduces data variability. Because the mean signal was unaffected by sequencing depth, no further correction for this effect was applied.
+**Gene Regulation of Immune Cells · Topic 4.5**
 
-Next, we assessed whether any cell types needed to be filtered out by checking if their quality parameters fell within standard literature thresholds. Since all cell types passed these benchmarks, no exclusions were necessary.
+Jordan, E. · Karlein, J. · Reisert, M. · Schreiber, J.  
+Supervisor: Dr. Alexander Sasse
 
-For the following downstream tasks, we retained only those cells shared between the ATAC-seq and RNA-seq datasets. Similarly, any genes lacking a direct match between both modalities were removed.
+Bachelor Molecular Biotechnology · IPMB  
+Data Analysis Project · Summer Semester 2026
 
-??? In 2.1 & 2.2 not done so far
+</div>
 
-To reduce noise during cell type clustering (1.3) and CRE classification (1.4), less significant peaks ($p \ge 1.5$) were removed. This filtering aligns precisely with the exclusions indicated in the "included in further analysis" column.
+## Table of Contents
 
----
+- [Introduction](#introduction)
+- [Methods](#methods)
+- [Results](#results)
+  - [PC-based clustering captures consistent cell lineages](#pc-based-clustering-captures-consistent-cell-lineages)
+  - [Variable enhancers dominate myeloid-specific OCRs over promoters](#variable-enhancers-dominate-myeloid-specific-OCRs-over-promoters)
+      - [Signal variability of promoters and enhancers](#signal-variability-promoters-enhancers)
+      - [Myeloid-specific OCR enrichment](#myeloid-specific-ocr-enrichment)
+  - [Cell-type-derived gene clusters reflect lineage-specific functions](#cell-type-derived-gene-clusters-reflect-lineage-specific-functions)
+  - [Myeloid-specific OCR accessibility drives Alox5ap expression](#myeloid-specific-ocr-accessibility-drives-alox5ap-expression)
+  - [Myeloid-associated TF motifs link to immune functions](#myeloid-associated-tf-motifs-link-to-immune-functions)
+- [Key Highlights & Findings](#key-highlights--findings)
+- [Future Directions](#future-directions)
+- [References](#references)
 
-## Signal Variability across CREs
+<a id="introduction"></a>
+<details open>
+<summary><h2>Introduction</h2></summary>
 
-One of the key findings in the original Yoshida et al. paper was the clear dichotomy in accessibility between promoters and enhancers. We successfully replicated these findings, demonstrating that promoters are generally more accessible compared to enhancers.
+Although immune cells share the same genomic sequence within an organism, they differ strongly in morphology and function. In mice, as in humans, this diversity includes lymphoid and myeloid lineages with distinct cellular identities [[1]](#ref-1). Despite the vital importance of a functional immune system for the organism, critical gaps remain in our understanding of the differentiation cascade from hematopoietic stem cells into mature immune cells. 
 
-<p align="center">
-  <img src="data/figures/Mean_Accessability_Promotors_vs_Enhancers.png" alt="Mean Accessibility: Promoters vs Enhancers" width="700">
-</p>
+Traditionally, cellular identities have been characterized by analyzing the transcriptome via RNA sequencing. However, transcriptomics alone captures only the output of cellular decision-making and misses the upstream regulatory mechanisms. With the development of Assay for Transposase-Accessible Chromatin (ATAC)-sequencing, it has become possible to investigate the epigenome by genome-wide profiling of open chromatin regions [[2]](#ref-2). 
 
----
+A major milestone was achieved by Yoshida *et al*. who systematically paired ATAC-seq with RNA-seq data across 86 immune cell populations from mice [[3]](#ref-3). Using the mouse immune-cell regulatory atlas by Yoshida *et al*., we integrated chromatin accessibility, transcription factor (TF) activity, and gene expression to better understand the regulatory basis of myeloid differentiation and possible discover edges and nodes of a gene regulatory network, driving myeloid differentiation.
 
-To analyze the differences in variability, we employed the Gini coefficient, mirroring the methodology of Yoshida et al. The Gini coefficient is highly robust and particularly advantageous for data that is highly skewed and sparse. Furthermore, its scale independence makes it an ideal metric for assessing variability in ATAC-seq data, which is why we applied it here and throughout our subsequent downstream analysis. 
+</details>
 
-??? Mot always used
+<a id="methods"></a>
+<details open>
+<summary><h2>Methods</h2></summary>
 
-Comparing the two regulatory elements, we successfully replicated the finding that enhancers display substantially higher variability in accessibility across cell types than promoters.
-
-<p align="center">
-  <img src="data/figures/Gini_Coefficient_Promotors_vs_Enhancers.png" alt="Gini Coefficient: Promoters vs Enhancers" width="700">
-</p>
-
-### Continuous Relationship with Gene Distance
-
-We also observed a continuous relationship between the distance to the nearest gene and both the standard deviation (SD) and mean of the ATAC-seq signal. 
-
-While the previous sections focused on the categorical dichotomy between promoters and enhancers, we next investigated whether these signal dynamics follow a continuous relationship relative to the exact genomic distance to the nearest gene. 
-
-Our analysis reveals a continuous correlation between gene distance and both the variability (SD) and mean of the ATAC-seq signal:
-
-#### A. Variability (Gini Coefficient) vs. Distance
-The further the Open Chromatin Regions (OCRs) are located from the nearest gene, the higher their continuous variability (measured via the Gini coefficient) becomes.
-* **Correlation coefficient:** 0.242
-* **Significance ($p$-value):** < 0.001
+We analyzed matched chromatin-accessibility and gene-expression data from the mouse immune-cell atlas generated by Yoshida *et al.*, which contains data from 86 primary immune cell types. In this atlas, ATAC-seq and RNA-seq were performed for each cell type, allowing the joint analysis of open chromatin regions (OCRs) and transcriptional profiles.
 
 <p align="center">
-  <img src="data/figures/Gini_Distance_Hex_Bin.png" alt="Gini Coefficient vs Distance" width="700">
+  <img src="data/figures/Methods_Illustration.png" alt="Overview of the ATAC-seq and RNA-seq integration workflow" width="700">
 </p>
 
----
+ATAC-seq identifies accessible chromatin using a hyperactive Tn5 transposase, which preferentially fragments DNA and inserts sequencing adapters in open chromatin regions. After amplification and sequencing, this generates genome-wide OCR maps for each immune cell type. RNA-seq provides the corresponding gene-expression profiles, allowing chromatin accessibility to be compared with transcriptional activity across the same cell types.
 
-#### B. Mean Accessibility vs. Distance
-Conversely, we observed a continuous inverse relationship regarding chromatin accessibility: the greater the distance between the OCRs and the nearest gene, the lower their mean accessibility.
-* **Correlation coefficient:** -0.287
-* **Significance ($p$-value):** < 0.001
+For downstream analysis, chromatin-accessibility values for each OCR were assembled into an OCR-by-cell-type matrix, while gene-expression values were arranged into a corresponding gene-by-cell-type matrix. Restricting both datasets to shared cell types enabled the direct comparison of regulatory potential (represented by OCR accessibility) and transcriptional output (represented by gene expression) across the immune-cell panel.
+
+<details>
+<summary><strong>Methodological details for QC and data cleanup of the Yoshida <em>et al.</em> dataset</strong></summary>
+<p>Relevant notebooks:</p>
+
+<ul>
+  <li>
+    <a href="scripts/1.1%20Quality%20control.ipynb">QC</a>
+  </li>
+  <li>
+    <a href="scripts/apply_new_blacklist.ipynb">Blacklist</a>
+  </li>
+</ul>
+
+<p>
+
+The QC metrics reported by Yoshida *et al.* fulfilled typical requirements for ATAC-seq read quality [[4]](#ref-4), and we therefore did not exclude any cell types based on QC criteria. However, since a newer version of the genomic blacklist was available, we applied this updated blacklist and removed 3,908 additional high-signal regions from the OCR set.
+
+For all analyses integrating chromatin accessibility and gene expression, we restricted the dataset to cell types that were present in both the ATAC-seq and RNA-seq data. This ensured that OCR accessibility and gene-expression patterns could be compared directly across the same set of cell types.
+
+Finally, downstream OCR–gene association analyses were restricted to genes that were present in the ATAC-seq annotation of nearby genes. Some gene identifiers in the RNA-seq file appeared to be inconsistent with the ATAC-seq annotation, and at least one entry, the gene labelled `"a"` near the end of the alphabetically sorted file, likely represents an annotation or parsing artifact. We therefore used the overlap between RNA-seq genes and ATAC-seq-annotated nearby genes as a conservative gene set for downstream integration.
+
+</details>
+
+</details>
+
+<a id="results"></a>
+<details open>
+<summary><h2>Results</h2></summary>
+
+<a id="pc-based-clustering-captures-consistent-cell-lineages"></a>
+<details open>
+<summary><h3>PC-based clustering captures consistent cell lineages</h3></summary>
+
+Relevant Notebooks:
+* [OCR-based clustering](scripts/1.3_Cell_type_clustering.ipynb)
+* [Gene expression-based clustering](scripts/2.1%20BasedOn1.3ConsistencyBetweenModalities.ipynb)
+
+Our goal of identifying OCRs and genes involved in myeloid differentiation relies on the central assumption that myeloid cells — and, more broadly, related immune cell types — occupy similar regions in OCR accessibility and gene-expression space. To test this assumption, we first performed unsupervised clustering of cell types and qualitatively compared the resulting clusters with known biological lineages.
+
+As an initial dimensionality-reduction approach, we used principal component analysis (PCA) on OCR accessibility and gene-expression profiles. Across K-Means clustering with different initializations, UMAP visualizations, and hierarchical agglomerative clustering with different distance metrics and linkage methods, the resulting cell-type clusters were remarkably stable.
+
+<details>
+<summary><strong>Methodological details for our cell type clustering</strong></summary>
+
+To assess whether cell types grouped according to known biological lineages, we performed unsupervised clustering separately on OCR accessibility and gene-expression data. In both modalities, only cell types present in both the ATAC-seq and RNA-seq datasets were retained, allowing direct comparison between accessibility-based and expression-based clustering.
+
+For the OCR-based analysis, we first used all OCRs that passed the systematic analysis filter from *Yoshida et al.* to reduce noise. After an initial PCA, the major lineage structure was already visible, although some overlap remained between myeloid and non-myeloid cell types. Since many OCRs showed very low variance across cell types, we removed low-variance OCRs and retained the most variable OCRs for downstream clustering. This largely preserved the previously observed structure while reducing the dimensionality of the input matrix.
+
+Cell types were then represented in principal component space. We applied several complementary clustering approaches. 
+
+First, K-Means clustering was performed across a range of cluster numbers, and candidate values of k were evaluated using silhouette scores and biological interpretability. We additionally used UMAP as a qualitative visualization to assess whether the observed grouping was also visible in a nonlinear two-dimensional embedding.
+
+Second, we performed hierarchical agglomerative clustering in PC space. Different distance metrics and linkage methods were compared, including Euclidean, correlation, cosine, and cityblock distances combined with average, complete, or single linkage. Clustering quality was evaluated using silhouette scores across multiple values of k. Since silhouette scores alone do not guarantee biological interpretability, we further inspected the dendrograms and cluster assignments of the best-performing methods, focusing on biologically reasonable values of k and on the placement of known immune lineages, especially myeloid-associated cell types.
+
+For the OCR-based clustering, correlation distance with average linkage provided a biologically coherent and comparatively fine-grained representation of the cell-type relationships. We therefore used the correlation-average solution as the basis for defining related cell-type groups in downstream OCR analyses. Plasmacytoid dendritic cells were treated as a separate group because they showed unstable placement across K-Means, UMAP, and alternative hierarchical clustering configurations.
+
+The gene-expression-based analysis followed the same general workflow to test whether transcriptomic cell-type relationships were consistent with the OCR-based structure. PCA, K-Means clustering, UMAP visualization, and hierarchical clustering were applied to the RNA-seq expression matrix.
+
+</details>
 
 <p align="center">
-  <img src="data/figures/Mean_Distance_Scatterplot.png" alt="Mean Accessibility vs Distance" width="700">
+  <img src="data/figures/both_cell_clustering_heatmaps.png" alt="Heatmaps for OCR and gene-expression based cell clustering">
 </p>
 
-
-### Signal Variability between different genomic regions
-
-In this phase of the analysis, we investigated whether Open Chromatin Regions (OCRs) localized within distinct genomic features (introns, exons, or intergenic regions) exhibit systematic differences in their ATAC-signal morphology. 
-
-Our initial exploratory analysis revealed a distinct pattern for exonic OCRs compared to intronic and intergenic regions, particularly regarding their **variability**:
+<details>
+<summary><strong>Show entire heatmap</strong></summary>
 
 <p align="center">
-  <img src="data/figures/Gini_genomic_regions_uncorrected.png" alt="Variability across genomic regions" width="700">
+  <img src="data/figures/corr-average_OCR_heatmap.svg" alt="OCR-based cell clustering" width="48%">
+  <img src="data/figures/corr-average_gene_heatmap.svg" alt="Gene-expression based cell clustering" width="48%">
 </p>
 
-A similar divergence was observed for their **mean accessibility**: 
+</details>
+
+Most cell types initially assigned to the myeloid group clustered together, and both OCR accessibility and gene-expression analyses recovered a largely coherent myeloid cluster separated from most other immune cell types.
+This supports the central assumption that myeloid-associated OCR and gene-expression patterns capture biologically meaningful lineage structure. At the same time, differences between OCR-based and gene-expression-based clustering, such as the positioning of stem/progenitor-like and dendritic-cell-associated populations, suggest that chromatin accessibility and transcriptional state capture related but non-identical aspects of cell identity.
+
+</details>
+
+<a id="variable-enhancers-dominate-myeloid-specific-OCRs-over-promoters"></a>
+<details open>
+<summary><h3>Variable enhancers dominate myeloid-specific OCRs over promoters</h3></summary>
+
+Relevant notebooks:
+* [Identification of myeloid-specific OCRs](scripts/1.4_CRE_classification.ipynb)
+* [OCR analysis](scripts/1.2%20Signal%20variability%20across%20CREs.ipynb)
+#### Analysis of OCRs associated with myeloid cell differentiation
+
+In this part of the analysis, we aimed to determine which types of OCRs characterize myeloid-associated chromatin accessibility. This allowed us to better describe the candidate regulatory elements contributing to the putative gene regulatory network underlying myeloid cell identity.
+
+<a id="signal-variability-promoters-enhancers"></a>
+
+#### 1. Signal Variability of Promoters and Enhancers
+
+We defined **Promoters** as OCRs located within a distance of $<1\text{ kb}$ to the closest gene, while **Enhancers** represent distal regulatory elements which exceed a distance of  $>1\text{ kb}$ to the next gene (matching the definition from Yoshida *et al.* )
+
+To quantify accessibility variability across the cell types, we used the **Gini Coefficient** (also following the approach of Yoshida *et al.*[[3]](#ref-3)). The Gini coefficient is well suited for this analysis because it captures uneven accessibility across cell types and is therefore less directly focused on absolute signal magnitude than variance-based measures.
 
 <p align="center">
-  <img src="data/figures/mean_accesability_Boxplots_genomic_regions_uncorrected.png" alt="Mean accessibility across genomic regions" width="700">
+  <img src="data/figures/Gini_Density_Plot_Enhancer_Promotors_Poster_final.png" alt="Gini_Densitiy_Plot_Enhancers_Promoters" width="700">
 </p>
+As shown in the density plot, the average Gini coefficient in **Enhancer OCRs** is significantly higher compared to **Promoter OCRs** ($0.465 \text{ vs. } 0.302, \ p < 0.0001$). This indicates that enhancer OCRs are highly variable and might play a more critical role in cell-type-specific regulation compared to promoters.
 
-#### Controlling for Confounding Factors
+<a id="myeloid-specific-ocr-enrichment"></a>
 
-Upon closer inspection, we identified a substantial confounding variable: the distance from OCRs to their nearest  gene body varied drastically between the three subgroups:
+#### 2. Myeloid-Specific OCR Enrichment
+
+<a id="myeloid-specific_OCR_identification"></a>
+
+To link enhancer variability to lineage-associated chromatin accessibility, we identified OCRs with preferential accessibility in myeloid cells. Because OCR clustering was computationally demanding and sensitive to overall accessibility levels, we used Gini-based preselection and aggregated related cell types into mean accessibility profiles before clustering.
+
+Using both K-Means and hierarchical clustering, we identified myeloid-associated OCR sets and compared their overlap. The intersection of both approaches showed strong myeloid-specific accessibility and was therefore used as a robust candidate set of myeloid-specific OCRs for downstream analysis.
+
+<details>
+<summary><strong>Methodological details for our OCR identification</strong></summary>
+Our goal was to identify OCRs with preferential accessibility in myeloid cells, ideally including OCRs specific to myeloid subpopulations. OCR clustering presented three main challenges.
+
+First, the number of OCRs exceeded our computational capacities. Initial clustering attempts using the full OCR set were computationally demanding and did not yield clusters with clear cell-type-associated accessibility patterns. We therefore reduced the OCR set before clustering.
+
+Second, the choice of filtering metric strongly influenced the resulting clusters. Selecting OCRs with the highest variance did not produce biologically useful clustering, as the resulting clusters mainly differed in overall accessibility rather than cell-type specificity. This was likely because variance was strongly correlated with absolute accessibility levels. Filtering based on ANOVA F-statistics produced similarly unsatisfactory cluster structures. In contrast, filtering based on the highest Gini coefficients yielded more interpretable OCR clusters, as the Gini coefficient prioritizes OCRs with uneven accessibility across cell types.
+
+Third, classical clustering approaches in the full cell-type space, as well as PCA-based dimensionality reduction, did not produce stable and biologically meaningful OCR clusters. PCA also introduced the additional challenge of recovering cell-type specificity from PC loadings. We therefore used our previous cell-type clustering results to aggregate related cell types into mean accessibility profiles. This biologically guided dimensionality reduction preserved lineage-associated accessibility patterns while reducing the complexity of the OCR matrix.
+
+Using these grouped mean accessibility profiles, we performed both K-Means and hierarchical clustering with different distance metrics and linkage methods. We evaluated the resulting clusterings using silhouette score analysis, centroid accessibility profiles, and direct comparison between K-Means- and hierarchical-clustering-derived OCR sets.
+
+The best-performing K-Means and hierarchical approaches identified substantially overlapping myeloid-associated OCR sets, with an intersection-over-union of 0.5809. OCRs selected by both methods showed markedly higher accessibility in myeloid cells compared with non-myeloid cells, with a mean myeloid-vs-non-myeloid z-transformed accessibility difference of 1.71 and a median difference of 1.77. We therefore used the intersection of both myeloid-associated OCR sets as a robust candidate set of myeloid-specific OCRs.
+</details>
 
 <p align="center">
-  <img src="data/figures/OCR_Gene_distances_different_genomic_regions_boxplots.png" alt="OCR distance distribution to nearest genes" width="700">
+  <img src="data/figures/Fraction_of_myeloid_specific_OCRs_Promotors_vs_Enhancers_recreation_ReadMe.png" alt="Bar_plot_promoters_vs_enhancers" width="700">
 </p>
 
-Given our previous finding that genomic distance heavily modulates the ATAC-seq signal profile, this baseline discrepancy introduced a significant bias. To isolate the true effect of the genomic regions, we implemented a distance-matching algorithm. For each exonic OCR, we selected an intronic and an intergenic counterpart with an equivalent distance to the nearest gene. 
+As visualized in the bar graph, the vast majority of these myeloid-specific OCRs are distal enhancers:
+* **Distal Enhancers:** 98.5%
+* **Promoters:** 1.5%
 
-Following this correction, the previously observed differences between the three subgroups were no longer statistically significant:
+To ensure that this finding was not merely explained by the generally high abundance of enhancer-like OCRs in the global OCR background, we performed a Chi-squared ($\chi^2$) test comparing enhancer-like and promoter-like OCR frequencies between the myeloid-specific OCR set and the remaining OCR background. This showed that enhancer-like OCRs were significantly enriched among myeloid-specific OCRs ($p < 0.0001$).
+
+Ultimately, this analysis suggests that myeloid differentiation is primarily driven by the selective opening of distal enhancers rather than changes at proximal promoters.
+
+</details>
+
+
+<a id="cell-type-derived-gene-clusters-reflect-lineage-specific-functions"></a>
+<details open>
+<summary><h3>Cell-type-derived gene clusters reflect lineage-specific functions</h3></summary>
+
+Relevant notebooks:
+* ([Initial clustering approaches during method refinement](scripts/2.2.3%20Gene%20Expression%20Patterns.ipynb))
+* [Cell-type associated gene clustering](scripts/2.2.1%20Gene%20Expression%20Patterns.ipynb)
+* [Myeloid-specific gene sets](scripts/2.2.2%20Gene%20Expression%20Patterns.ipynb)
+
+Previous analyses showed that immune cell types can be grouped according to their gene-expression profiles. We therefore asked whether genes could also be clustered based on their cell-type-associated expression patterns. By grouping genes in this way, we aimed to test whether broad lineage- and cell-type-associated gene clusters could be recovered and subsequently derive focused myeloid-specific gene sets for downstream analysis.
+
+Following the workflow established for [OCR clustering](#myeloid-specific_OCR_identification), we focused on genes with uneven expression across cell types by selecting the top 10% of genes with the highest Gini coefficients. Related cell types were then aggregated into broader cell groups based on our previous gene-expression-based cell clustering. For each gene, expression values were z-transformed across cell types and averaged within these related cell groups.
+
+Using this reduced gene-by-cell-group matrix, we performed K-Means clustering and evaluated different cluster numbers using silhouette score analysis and centroid interpretability. Based on these criteria we selected k = 11 as the final gene-clustering solution.
 
 <p align="center">
-  <img src="data/figures/gini_coefficients_genomic_regions_corrected.png" alt="Corrected variability" width="700">
+  <img src="data/figures/2.2 gene expression k=11.png" alt="Gene expression across cluster k=11" width="700">
 </p>
+
+<details>
+<summary><strong>Methodological details for gene-expression-based clustering</strong></summary>
+
+We initially tested several approaches for clustering genes based on their expression profiles across cell types. These included clustering all genes, clustering only the top 100 most variable genes, and clustering genes after PCA-based dimensionality reduction. However, these approaches did not produce biologically useful clustering results. Some clusters contained very large numbers of genes without enrichment for specific biological functions, whereas smaller clusters were mainly enriched for broad housekeeping processes such as protein biosynthesis. This suggested that these approaches were either dominated by general expression strength or failed to capture lineage-associated expression patterns in a stable way.
+
+To address this, we used the Gini coefficient as a filtering criterion, analogous to the OCR-clustering strategy described above. We retained the top 10% of genes with the highest Gini coefficients, thereby enriching the input for genes with uneven, cell-type-associated expression across the immune-cell panel.
+
+We then reduced dimensionality by aggregating related cell types into cell groups. These groups were based on the previously established gene-expression-derived cell clustering. For each gene, expression values were z-transformed across cell types to make genes comparable regardless of their absolute expression level. We then calculated the mean z-transformed expression within each related cell group, resulting in a reduced gene-by-cell-group matrix.
+
+Using this grouped mean expression matrix, we performed K-Means clustering and evaluated different values of k using silhouette score analysis and centroid heatmaps. 
+<p align="center">
+  <img src="data/figures/2.2_gene_expression_both_10_and_11.png" alt="Gene expression across clusters k=10 and k=11" width="700">
+</p>
+Both k = 10 and k = 11 produced promising centroid structures and were therefore inspected in more detail. The k = 10 solution captured several broad lineage-associated gene-expression patterns, but some biologically distinct programs remained merged. In contrast, k = 11 provided slightly higher resolution and separated additional interpretable gene clusters without excessive fragmentation.
+
+We therefore selected k = 11 as the final gene-clustering solution. This choice was supported by our downstream Gene Ontology enrichment analysis, where most k = 11 clusters showed functional enrichments consistent with the cell groups in which they had the highest centroid expression.
+
+</details>
+
+
+To validate the gene clustering, we used Gene Ontology (GO) enrichment and determined the biological function of the different clusters. For k=11, the enriched GO terms matched the cell groups with the highest gene expression for this centroid. Only cluster 5, which was related to dendritic and epithelial cells, and cluster 4, related to mature T-cells, did not show significant enrichment in GO terms. The cluster related to monocytes and macrophages is enriched in lysosomal pathways. The cluster of granulocytes exhibits genes associated with granules.
 
 <p align="center">
-  <img src="data/figures/mean_accessability_genomic_regions_corrected.png" alt="Corrected mean accessibility" width="700">
+  <img src="data/figures/2.2 GO enrichment across clusters original.png" alt="GO enrichment across clusters" width="700">
 </p>
 
+For downstream OCR–gene association analysis, we required a focused set of myeloid-enriched candidate target genes rather than broad lineage-associated gene clusters. We therefore defined a complementary myeloid gene set using a direct myeloid-vs-non-myeloid expression contrast.
 
-
-## Cell Type Clustering
-Driven by the assumption that OCR accessibility should be similar across closely related cell-types, we performed clustering of our cell types based on their specific ATAC-seq readouts. 
-As a form of dimensionality reduction we utilized principle component analysis (PCA). Qualitative visual inspection showed that preselection of only the 90% quantile of OCR variance yieled clusters more congruent with cellular lineage families.
-<p align="center">
-  <img src="data/figures/1.3_PCA_Scatterplot_no_variance_threshold.png" alt="Scatterplot of Cell Types clustered along PC1- and PC2-axes before tresholding" width="700">
-</p>
-<p align="center">
-  <img src="data/figures/1.3_PCA_Scatterplot_with_variance_threshold.png" alt="Scatterplot of Cell Types clustered along PC1- and PC2-axes after thresholding" width="700">
-</p>
-
-K-means clustering is already able to construct clusters, distinguishing myeloid cells, stem and progenitor cells, B-cells, and T-cells with fairly high accuracy. 
-<p align="center">
-  <img src="data/figures/1.3_PCA_Scatterplot_k-Means.png" alt="Scatterplot of Cell Types clustered along PC1- and PC2-axes after thresholding with k-means clustering shown. Separate figures for all cells and only myeloid cells" width="700">
-</p>
-With the exception of plasmacytoid dendric cells (DC.pDC.Sp), multipotent progenitors of the myeloid line (MPP3.48+.BM) and short-term hematopoietic stem cells (STHSC.150-.BM) all cells we initially included in our category of "Myeloid Cells" are part of a single cluster with no other cells present. 
-
-Hierarchical clustering provides a more fine-grained approach for grouping cell types and visualizing structure in the multidimensional PC space. After comparing different linkage methods, distance metrics, and numbers of clusters using silhouette-score analysis and qualitative comparison with k-means clustering, we selected correlation distance with average linkage for the final clustering. This parameter combination achieved the highest average silhouette score and also matches the strategy used by Yoshida et al. for their analysis of the myeloid lineage. Overall, clustering results were fairly robust across different metrics and linkage methods, especially for low numbers of clusters.
-<p align="center">
-  <img src="data/figures/1.3_Heatmap_with_cell_clusters.png" alt="Heatmap of Cell Types clustered acording to PCs 1 through 15. Average linkage with correlation distance as its metric was chosen to generate 12 clusters." width="700">
-</p>
-
-Remarkably, most of the clusters correspond to meaningful biologically distinct groups of cells. With the exception of pericytes (IAP.SLN) all differentiated myeloid cells are sorted into three subclusters, corresponding to dendritic cells (DCs), granulocytes (GNs), and macrophages (MFs) and monocytes (Mos). Additionally, we categorized plasmacytoid DCs as an individual cluster, because of separate position within k-means Clustering and their categorization as a single cell cluster in many other clustering configurations.
-
-## CRE Classification
-Two methods were utilized to identify OCRs specifically associated with myeloid cells: Clustering methods, clustering a subset of the OCRs and analysis of the loadings of our PCs that successfully segregated the cell types into biologically meaningful clusters.
-### CRE Classification by clustering
-To reduce biological noise and keep computational load at a reasonable level, we tested multiple strategies to preselect informative OCR subsets. While selection based on variance and ANOVA F-statistics did not yield clearly interpretable OCR clusters, selecting the top OCRs by Gini coefficient produced more coherent clustering results. We therefore used the top 90% quantile of OCRs ranked by Gini coefficient for further analysis.
-
-Initial attempts to cluster OCRs directly based on accessibility across individual cell types, or in PCA spaces derived from these individual cell-type profiles, did not result in stable or biologically interpretable cluster structures. However, the preceding cell type clustering analysis showed that related cell types grouped together in OCR-based PCA space, indicating that OCR accessibility variation is organized along broader lineage-associated axes. We therefore used this observation to construct a biologically informed dimensionality reduction for OCR clustering.
-
-Instead of representing each OCR by its accessibility across all individual cell types, we aggregated closely related cell types into lineage-level groups corresponding with the derived clusters and calculated the mean accessibility of each OCR within each group. This transformed each OCR into a lower-dimensional lineage-level accessibility profile. This approach preserves major biological accessibility patterns while reducing noise from individual cell-type variation and avoids forcing OCR clustering in a high-dimensional representation that did not yield interpretable results.
-
-After using silhouette-analysis to determine suitable numbers of clusters and visual inspection of corresponding heatmaps, we chose 8 as the appropriate number of clusters. A heatmap of the cluster centroids and their mean accessibility within each group showed that certain centroids can be associated with distinct biologically meaningful groups of cells. E.g. centroids 1 and 5 correspond to most myeloid cells and centroid 4 appears to consist of OCRs particularly accessible in plasmacytoid DCs. 
+For each gene, expression values were z-transformed across cell types. We then calculated the difference between mean expression in myeloid cell types and mean expression in all remaining cell types. The 250 genes with the highest myeloid-vs-non-myeloid expression difference were selected as candidate myeloid-enriched genes and analyzed by Gene Ontology enrichment.
 
 <p align="center">
-  <img src="data/figures/1.4_kMeans_Centroids_Heatmap.png" alt="Heatmap of the average accessibility of k-means derived cluster centroids in distinct cell groups." width="700">
+  <img src="data/figures/2.2 GO enrichment of top 250 myeloid genes.png" alt="GO enrichment of top myeloid-enriched genes" width="700">
 </p>
 
-To verify the biological consistency and robustness of this clustering approach, we compared it to hierarchical clustering methods using the same dimensionality reduction technique and number of clusters. For instance average linkage with correlation distance also produced a heatmap where centroids are clearly overly accessible in certain subgroups of cells.
+The resulting GO enrichments were related to phagosome maturation, lysosomal degradation, vesicle and lysosome-associated compartments, and innate immune effector functions. This supports that the selected gene set captures characteristic myeloid biology. We therefore used these myeloid-enriched genes for downstream OCR–gene association and candidate regulatory network analyses.
+
+</details>
+
+<a id="myeloid-specific-ocr-accessibility-drives-alox5ap-expression"></a>
+<details open>
+<summary><h3>Myeloid-specific OCR accessibility drives Alox5ap expression</h3></summary>
+
+Relevant notebooks:
+* [Correlation-based analysis](scripts/2.3%20CRE–Gene%20Association%20via%20Correlation.ipynb)
+* [Regression-based analysis](scripts/2.4_Regression_Analysis.ipynb)
+
+
+To connect myeloid-enriched OCRs with potential target genes and infer candidate regulatory relationships, we combined correlation-based filtering with Elastic Net regression. Elastic Net coefficients were used to estimate how strongly individual OCRs contributed to the prediction of gene expression. To qualitatively evaluate selected OCR–gene relationships, we visualized candidate loci using genomic track plots.
+
+<details>
+<summary><strong>Details on our choice of Elastic Net</strong></summary>
+
+We decided to use Elastic Net because of its two main advantages over ordinary least squares (OLS) regression. First, OLS tends to assign coefficients in an unstable way, especially when input variables are strongly correlated. For example, if two OCRs are highly correlated with each other and both correlate with gene expression, the associated signal may be split arbitrarily between them, or one coefficient may become strongly positive while the other becomes negative. This makes the biological interpretation of individual OLS coefficients difficult.
+
+Second, OLS does not enforce feature selection. This was problematic because, for many genes, the number of candidate OCRs exceeded the number of cell types used as samples. In this setting, OLS can achieve artificially high or even perfect \(R^2\) values by overfitting the data through the pseudo-inverse solution. Such perfect prediction of gene expression is biologically implausible and therefore not suitable for identifying meaningful OCR–gene relationships. We therefore used OLS only as a statistical upper estimate of the explanatory capacity of linear regression models in this setting.
+
+Elastic Net addresses these limitations by adding two regularization terms to the loss function: Ridge and Lasso regularization. Ridge regularization penalizes large coefficients and can distribute signal more evenly across correlated variables, leading to more stable coefficient estimates. Lasso regularization promotes sparsity and therefore acts as a form of feature selection, partly alleviating the problem of overfitting and perfect \(R^2\) scores. Since the overall strength of regularization and the balance between Ridge and Lasso penalties are hyperparameters, we optimized these parameters before applying the final model.
+
+However, even with Elastic Net regularization, some limitations remained. In particular, \(R^2\) values were still unrealistically high in some cases, especially when models were trained only on myeloid cell types. In addition, negative coefficients were often still associated with positive OCR–gene correlations, suggesting that some coefficients may reflect artifacts caused by correlated OCRs rather than true negative regulatory relationships. Therefore, Elastic Net coefficients were used as a filtering and prioritization criterion rather than as definitive evidence for direct regulatory effects.
+
+
+</details>
+
+For candidate prioritization, we fitted Elastic Net models across all cell types, myeloid cell types only, and non-myeloid cell types only. We then compared OCR coefficients between the myeloid and non-myeloid models. OCR–gene pairs with stronger coefficients in the myeloid model were prioritized as candidate myeloid-associated regulatory links.
+<p align="center">
+  <img src="data/figures/Alox5ap_short.png" alt="genomic track plot for Alox5Ap" width="700">
+</p>
+
+
+The Alox5ap locus provides an example of a candidate OCR–gene relationship recovered by our filtering strategy. Several OCRs near Alox5ap showed increased accessibility in myeloid cell types, particularly in granulocytes, macrophages, monocytes, and dendritic-cell-associated populations. This accessibility pattern broadly matched the scaled Alox5ap RNA-expression profile, supporting a potential regulatory link between myeloid-accessible OCRs and Alox5ap expression.
+
+
+Alox5ap encodes a key component of the leukotriene synthesis pathway and is therefore functionally connected to myeloid inflammatory responses. This locus illustrates how myeloid-specific chromatin accessibility, OCR–gene regression coefficients, and gene-expression patterns can be integrated to identify candidate regulatory relationships. However, comparable OCR–RNA agreement was not observed across all candidate loci, indicating that Alox5ap represents a particularly clear example rather than a pattern that was equally apparent across all candidate loci.
+
+
+Thus, robust identification of gene regulatory network edges and nodes will require further refinement of both the initial candidate selection and the downstream OCR–gene filtering strategy.
+
+<details>
+<summary><strong>Genomic track plot of Alox5ap for all cell types</strong></summary>
 
 <p align="center">
-  <img src="data/figures/1.4_hierarchical_Centroids_Heatmap.png" alt="Heatmap of the average accessibility of cluster centroids in distinct cell groups derived by average linkage using correlation distance." width="700">
+  <img src="data/figures/Alox5Ap_complete.png" alt="genomic track plot for Alox5Ap with all cell types" width="700">
 </p>
+</details>
 
-The cluster indices assigned by k-means and hierarchical clustering are arbitrary and therefore not directly comparable. To compare both approaches, we reordered the cluster centroids such that the total correlation distance between matched centroids was minimized.
+</details>
 
-After this alignment, most centroids from one method could be matched to a highly similar centroid from the other method. This is visible in the correlation distance matrix, where the main diagonal mostly contains values close to 0. Since a correlation distance near 0 indicates strong positive correlation, this suggests that both clustering approaches recovered largely consistent centroid patterns.
+<a id="myeloid-associated-tf-motifs-link-to-immune-functions"></a>
+<details open>
+<summary><h3>Myeloid-associated TF motifs link to immune functions</h3></summary>
 
-<p align="center">
-  <img src="data/figures/1.4_correlation_distance_matric_centroids.png" alt="Correlation distance matrix between centroids of k-means and hierarchical clustering. Arranged in a way, to minimize distance on the main diagonal." width="700">
-</p>
-
-The exceptions to this general trend can also be explained relatively straightforward way. K-means clustering produced two centroids with increased accessibility in myeloid cells (clusters 1 and 5). In contrast, hierarchical clustering yielded only one cluster representing this specific pattern (cluster 8.) This explains the high correlation between k-means cluster 5 and hierarchical cluster 8.
-
-The lack of strong positive correlation for the sixth element on the main diagonal is also interpretable. In this case, the value of 0.45 in the same column would be the most appropriate match for the diagonal. This reflects a difference in how the two methods separated lymphoid-associated patterns: k-means produced a single cluster (2) covering both T cells and ILCs, whereas hierarchical clustering separated these into cluster 1 for T cells and cluster 2 for ILCs.
-
-Based on these results, we selected k-means clusters 1 and 5 and hierarchical cluster 8 as OCR sets potentially relevant for myeloid differentiation. In addition, we selected k-means cluster 4 and hierarchical cluster 6, both of which showed particularly high accessibility in plasmacytoid DCs, to further investigate the unusual behavior of this cell type compared with other differentiated myeloid cells.
-
-Finally, we assessed the quality of our OCR selection by testing whether the selected OCRs showed increased accessibility in the corresponding cell group, either myeloid cells or pDCs, compared with all other cell types. For each OCR, we calculated the row-wise z-transformed mean accessibility difference between the cell group of interest and all remaining cell types. We then compared this effect distribution between selected OCRs and all non-selected OCRs.
-
-<p align="center">
-  <img src="data/figures/1.4_violin_plots_OCR_accesibility_enrichment.png" alt="Violin plot showing that selected myeloid and pDC OCRs have higher cell-type-specific accessibility than non-selected OCRs." width="700">
-</p>
-
-### CRE Classification by PCA loading analysis
-#ToDo
-Only elaborate, if the specific rankings for DCs, Granulocytes and Macrophages & Monocytes actually yield useful results later
-
-## Constistency between Modalitites
-
-Cell types distinguish in morphology and function. The differences are a result of individual gene expression patterns in every cell. Thus, we assumed that cells can be not only clustered in related groups by using OCR accessibility but also by applying their gene expression. Our goal was to later use the resulting cell lineage to compare it with the results of the previous cell clustering and with the cell lineage tree from Yoshida et al.
-
-Data exploration revealed that only a fraction of the 17.535 genes differ significantly from 0 in their mean and variance value.Therefore, analysis was based on the top 10 % of the most variable genes in the RNA-seq dataframe. We used Principle Component Analysis to reduce the dimensions of the dataset, keeping the Principle Components that explain 95% of the variance across cells.
-
-??? PICTURE like in 1.3
-
-Firstly, k-means clustering was applied to separate the cells in distinct clusters. By calculating the silhouette-score per number of clusters, promising numbers of clusters were used to separate group 5 cells from other cells. Already k=2 formed one cluster exclusively containing myeloid cells. Only progenitor and dendritic cells were linked to the other cluster.
-
-<p align="center">
-  <img src="data/figures/2.1 group 5 cells vs rest with k=2.png" alt="Scatter plots of cells in PC1 and PC2 dimension; k=2." width="700">
-</p>
-
-Next, we performed hierarchical clustering to create a dendrogram that reveals the cell lineage relationships. By calculating the average silhouette score, different distance metrics and linkage methods were compared. The best results were achieved by using the distance metric correlation and the linkage method average. Moreover, the linkage tree was cut into k=11 clusters, which lead to the best separation of cells into distinct groups.
-
-<p align="center">
-  <img src="data/figures/2.1 hierarchical clustering.png" alt="Hierarchical clustering cells based on gene expression" width="700">
-</p>
-
-When comparing the dendrogram of cell clustering based on OCR accessibility and gene expression, high similarity is seen. Myeloid cells are separated into a macrophage and monocyte cluster, a granulocyte cluster, and a dendritic cell cluster. The progenitor cells do not cluster with the matured myloid cells.
-Compared to the lineage tree provided by Yoshida et al. it is remarkable that the tissue-dependent macrophages cluster well in our approach, whereas they are excluded in the paper due to different behaviour. On the other hand, progenitor cells in the paper are linked closely to the matured myeloid cells. Otherwise, the lineage tree provided in the paper is mostly similar regarding the myloid cells. This support the validity of our cell clustering approach.
-
----
-
-## Gene Expression Patterns
-
-Clustering genes based on cell expression turned out to be not as straight forward as clustering cells based on gene expression. Because of the high amount of genes, we used the 10 percentile of most variable genes, determined with the gini coefficient, to reduce the gene number and improve the significance of gene clustering. 
-
-Clustering genes based on the expression across the 86 immune cells as well as on the prinicple components explaining 95% of variance did not result in valid clusters. Therefore, we aggregated the cells in clusters based on cell clustering by gene expression. This was performed by calculating the mean gene expression across the 11 cell groups.
-
-Next, gene expression needed to be z-transformed across cell groups, so that the difference in expression levels did not disturb the analysis.
-
-We used k-means clustering and calculated the silhouette score to determine the best amount of clusters. For k=10 and k=11 we visualized the gene expression of cell groups in different centroids.
-
-<p align="center">
-  <img src="data/figures/2.2 gene expression across clusters.png" alt="Gene expression across clusters" width="700">
-</p>
-
-To biologically confirm the meaningful separation of genes into clusters, we performed gene ontology enrichment analysis to determine if the clusters show particular biological functions. With k=11, all clusters beside cluster 4 and 5 expressed significant enrichment in distinct biological functions. The enriched biological functions of each cluster can be linked to the cell groups that showed high gene expression in this centroids.
-
-<p align="center">
-  <img src="data/figures/2.2 GO enrichment across clusters.png" alt="GO enrichment across clusters" width="700">
-</p>
-
-The genes which were part of the clusters with high gene expression level across myeloid cells were stored for later analysis. 
-
-Another approach to determine lineage-sepcific genes is to compare the difference in mean expression of myeloid genes compared to other genes after z-transformation. We further investigated the top 250 genes with the highest difference by gene ontology enrichment analysis. The resulting biological functions match myeloid specific gene sets. 
-
-<p align="center">
-  <img src="data/figures/2.2 GO enrichment of top 250 myeloid genes.png" alt="GO enrichment across clusters" width="700">
-</p>
-
---- 
-
-## CRE–Gene Association via Correlation
-
-### Integration of ATAC-Seq and RNA-Seq Signals
-
-To functionally link chromatin accessibility with transcriptional output, we performed a Spearman correlation analysis across all OCR-gene pairs identified within a 100 kb window (derived from the `genes.within.100kb` annotation). $P$-values were adjusted for multiple testing using the Benjamini-Hochberg false discovery rate (FDR) correction, applying a significance threshold of $\text{FDR} < 0.05$.
-
-These significantly correlated pairs served to identify myeloid-lineage-specific OCRs. Specifically, we filtered for significant OCRs associated with the lineage-specific marker genes established in Section 2.1. These regulatory regions subsequently formed the foundation for the transcription factor binding motif (TFBM) analysis detailed in Section 3.0.
-
-#### Spatial Analysis of OCR-Gene Correlations
-
-We observed a weak but highly significant inverse relationship between the correlation coefficient of an OCR-gene pair and the genomic distance separating them:
-
-* **Spearman's $\rho$:** -0.087
-* **Significance ($p$-value):** $< 0.001$
-
-<p align="center">
-  <img src="data/figures/absolute_correlation_distance_OCR_Gene_Pairs_Hexbin.png" alt="Absolute correlation vs. distance between OCR and gene Hexbin" width="700">
-</p>
-
-Interestingly, approximately 25% (one-quarter) of all significantly associated OCR-gene pairs exhibited a negative correlation. 
-
-To investigate these negatively correlated pairs further, we tested the hypothesis that negative correlations within proximal promoter regions ($<1\text{ kb}$ from the TSS) might be driven by nucleosome positioning or phased histones displaced by chromatin remodeling complexes. Under this hypothesis, we expected to observe a periodic pattern in correlation strength relative to the distance within the $1\text{ kb}$ window. However, no such periodicity was detected:
-
-<p align="center">
-  <img src="data/figures/Correlation_distance_1kb_Boxplots.png" alt="Correlation distribution within 1kb promoter regions" width="700">
-</p>
-
-#### Regulatory Complexity: Degree of Many-to-Many Interactions
-
-Finally, we quantified the regulatory complexity by assessing the number of significant connections per genomic feature. Our results indicate a many-to-many regulatory architecture: a typical gene significantly correlates with approximately 10 distinct OCRs:
-
-<p align="center">
-  <img src="data/figures/Typically_correlated_OCRs_per_gene_Histogram.png" alt="Histogram of significantly correlated OCRs per gene" width="700">
-</p>
-
-Conversely, a typical OCR significantly correlates with an average of 1.4 genes: 
-
-<p align="center">
-  <img src="data/figures/Typically_correlated_genes_per_OCR_Histogram.png" alt="Histogram of significantly correlated genes per OCR" width="700">
-</p>
+Relevant notebooks:
+* [TF motif enrichment analysis](scripts/3.0%20Transcription%20Factor%20Activity.ipynb)
+* [Regression-based thresholds](scripts/2.4_Regression_Analysis.ipynb)
 
 
-## CRE–Gene Association via Regression
-### Upper estimate using Ordinary Linear Regression
+As a final step, we aimed to identify candidate transcription factors (TFs) that may regulate our putative gene regulatory network. We therefore quantified TF motif enrichment in myeloid-specific OCRs, yielding a ranked list of motifs enriched in regulatory regions associated with myeloid cell identity.
 
-cool plot I wanna talk about
-<p align="center">
-  <img src="data/figures/example_plot_gene_axis.png" alt="Cool plot I wanna talk about" width="700">
-</p>
+To connect these motifs to potential target genes, motif-bearing OCRs were linked to genes using the previously established correlation- and regression-based associations.
 
-## Transcription Factor Activity
-We performed an analysis of transcription factor (TF) binding motifs in open chromatin regions (OCRs).
-TF analysis provides insight into which transcription factors are likely controlling the genes and cell states observed in the data.
-### Connecting ATAC-seq peaks and the TF-Matrix
-We connected the TF motif data with the ATAC‑seq dataset by matching both DataFrames through their shared peak identifiers. The TF motif file contained motif hits indexed by simple integer peak IDs, while the ATAC‑seq table used full peak names such as "ImmGenATAC1219.peak_123". To make both formats compatible, we first converted the integer peak IDs from the motif file into the ATAC naming scheme by prefixing them with "ImmGenATAC1219.peak_".
+<details> <summary><strong>Details on motif selection and gene linkage</strong></summary>
 
-We then set the ATAC‑seq peak ID column as the index and performed an inner merge between the motif table and the ATAC‑seq table. This merge produced a combined dataset in which each TF motif hit was directly linked to the corresponding ATAC‑seq peak and its associated metadata.
+For each motif, we compared its frequency in myeloid-specific OCRs with its frequency in all other OCRs. Motif overrepresentation was assessed using a chi-square test with Yates correction, and Benjamini–Hochberg correction was applied to control the false discovery rate across all tested motifs.
 
-This merged table served as the basis for all subsequent steps.
+OCRs were preselected using correlation-based filtering. The final set of OCRs containing the most enriched TF motifs was then linked to genes using regression-based thresholding. This allowed us to identify genes that were not only located near these OCRs but whose expression was also associated with their accessibility. The resulting motif-associated gene sets were used as input for GO enrichment analysis.
 
-### Connecting RNA-seq Data with the TF-Matrix
-Since these two dont have a common column, we use the merged ATAC-TF DataFrame. We  loaded the RNA‑seq dataset and then the ImmGen-ATAC‑seq gene‑association file, which links each peak to one or more nearby genes. Since a single peak can be associated with multiple genes, we split the gene lists into individual entries and used explode() to create one row per peakID–gene_name pair. This resulted in a clean peak‑to‑gene mapping table (df_cre_gene_assoc).
+</details>
 
-With the peak‑to‑gene associations prepared, we merged them with the TF motif table. The motif table contained motif hits per peak, and by joining it with the exploded peak‑to‑gene mapping, each motif hit became directly linked to the genes associated with that peak. We then grouped this merged dataset by gene_name and motif_name to compute motif counts and summary statistics (maximum and mean motif scores). This produced a compact table describing TF motif activity per gene.
+To assess the biological plausibility of the identified TF candidates, we performed GO enrichment analysis on their associated genes.
 
-Finally, we merged this aggregated TF–gene table with the cleaned RNA‑seq expression matrix. The result combines gene expression values with TF motif information, enabling downstream analyses that relate transcription factor binding patterns to gene expression profiles
+<p align="center"> <img src="data/figures/GO_TFs.svg" alt="GO_Enrichment_TF_Motifs" width="700"> </p>
 
+Genes associated with OCRs carrying myeloid-enriched TF motifs showed GO enrichments characteristic of innate immune function, including chemokine receptor binding, vacuolar lumen-associated processes, and pathways related to myeloid inflammatory responses. These enrichments provide functional context for the identified TF motifs and their putative regulatory targets. Notably, KLF4, one of the recovered TF candidates, is a known regulator of monocyte differentiation [[5]](#ref-5), supporting the ability of our pipeline to identify TFs relevant to myeloid differentiation.
 
-<p align="center">
-  <img src=">
-</p>
-Ich glaube hier wäre ein Bild praktisch, leider hab ich keine Plots
+</details>
 
-### Interpretation of the merged DataFrames
-Using previously determined cell-lineage specific OCRs and genes, we were able to filter for all binding motifs of our interest. We then determined TF-binding motives that (hier ist mir aufgefallen, dass ich nirgends geschaut hab, ob unsere Motifs in andere Zelltypen signifikant weniger auftauchen) are important to myleoid cell diffentiation by combining the number of times a specific binding motif was found connected to a (hier ist mir aufgefallen, dass man die Listen für maximale biologische Aussagekraft einfach kombinieren sollte) myleoid associated OCR or gene and the average binding strength (das wäre in der tat sehr sinnvoll das zu tun).
+</details>
 
----
-## Highlights
-<!--  -->
+<a id="key-highlights--findings"></a>
+<details open>
+<summary><h2>Key Highlights & Findings</h2></summary>
+
+* **Lineage-consistent clustering:** Gene- and OCR-based cell-type clustering recovered major immune-cell lineages and provided the cellular framework for downstream regulatory network analysis.
+
+* **Myeloid-associated regulatory components:** Identified myeloid-enriched genes as candidate regulatory network targets and myeloid-enriched OCRs as candidate cis-regulatory elements.
+
+* **Enhancer-dominated regulatory landscape:** Discovered that myeloid-specific OCRs contained a larger fraction of distal enhancer-like regions compared with promoter-like regions, suggesting that myeloid-associated regulatory programs are primarily linked to distal regulatory elements.
+
+* **Candidate OCR–gene network edges:** Linked myeloid-enriched genes to nearby OCRs using correlation-based filtering and Elastic Net regression, thereby prioritizing candidate regulatory edges between accessible chromatin regions and target genes.
+
+* **Locus-level network examples:** Visualized selected candidate OCR–gene relationships, including the Alox5ap locus, using genomic track plots to illustrate how chromatin accessibility and gene expression can be integrated at individual regulatory loci.
+
+* **TF motif enrichment as candidate network nodes:** Identified transcription factor motifs enriched in myeloid-specific OCRs and connected motif-associated gene sets to immune-related GO terms, providing candidate TF-centered regulatory programs for future network refinement.
+
+</details>
+
+<a id="future-directions"></a>
+<details open>
+<summary><h2>Future Directions</h2></summary>
+
+* **Non-linear regulatory modeling:** Apply machine learning approaches, such as Random Forests, to capture non-linear relationships between OCR accessibility, TF motif presence, and gene expression that may be missed by linear Elastic Net regression.
+
+* **Single-cell multi-omic resolution:** Integrate single-cell multi-omic datasets combining chromatin accessibility and gene expression to infer OCR–gene relationships at higher cellular resolution.
+
+* **TF-centered network refinement:** Integrate TF motif enrichment with cell-type-specific TF expression profiles to refine candidate gene regulatory networks in myeloid cells.
+
+* **Improved OCR–gene linking:** Incorporate additional evidence, such as genomic distance, or motif content, to better prioritize candidate OCR–gene edges.
+
+* **Experimental validation:** Validate prioritized regulatory links using targeted perturbation approaches, such as CRISPR interference, or deletion of candidate regulatory elements.
+
+</details>
+
+## References
+
+<details>
+<summary><strong>Show references</strong></summary>
+
+<a id="ref-1"></a>
+[1] Weiskopf *et al*. (2016). Myeloid Cell Origins, Differentiation, and Clinical Implications. *Microbiology Spectrum*, 4(5), 1–17.
+
+<a id="ref-2"></a>
+[2] Buenrostro *et al*. (2013). Transposition of native chromatin for fast and sensitive epigenomic profiling of open chromatin, DNA-binding proteins and nucleosome position. *Nature Methods*, 10(12), 1213–1218.
+
+<a id="ref-3"></a>
+[3] Yoshida *et al*. (2019). The cis-Regulatory Atlas of the Mouse Immune System. *Cell*, 176(4), 897–912.
+
+<a id="ref-4"></a>
+[4] Yan *et al*. (2020). From reads to insight: a hitchhiker's guide to ATAC-seq data analysis. *Genome Biology*, 21, 22.
+
+<a id="ref-5"></a>
+[5] Feinberg *et al*. (2007). The Kruppel-like factor KLF4 is a critical regulator of monocyte differentiation. *EMBO Journal*, 26(18), 4138–4148.
+
+</details>
